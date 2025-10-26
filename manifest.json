@@ -5,6 +5,6 @@
     "minAppVersion": "0.15.0",
     "description": "Replaces black color with white in SVG rendered from LaTeX for dark mode compatibility.",
     "author": "Mahiron47",
-    "authorUrl": "https://yourwebsite.com",
+    "authorUrl": "https://github.com/Mahiron47/svg-color-replacer",
     "isDesktopOnly": false
 }
