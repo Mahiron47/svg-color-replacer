@@ -1,7 +1,7 @@
 {
   "name": "obsidian-svg-color-replacer",
   "version": "1.0.0",
-  "description": "Replaces white color with transparent in SVG rendered from LaTeX in Obsidian",
+  "description": "Replaces black color with white in SVG rendered from LaTeX for dark mode compatibility.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
