@@ -1,0 +1,10 @@
+/* Дополнительные стили для плагина (опционально) */
+.markdown-preview-view svg {
+    background: transparent !important;
+}
+
+/* Убираем белый фон у LaTeX рендера */
+.math-block svg,
+.math-inline svg {
+    background: transparent !important;
+}
