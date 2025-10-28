@@ -2,9 +2,13 @@ import { Plugin, MarkdownPostProcessorContext } from 'obsidian';
 
 export default class SVGColorReplacerPlugin extends Plugin {
     private readonly PROCESSED_MARKER = 'svg-color-replaced';
+    private intersectionObserver: IntersectionObserver | null = null;
 
     async onload() {
         console.log('Loading SVG Color Replacer Plugin');
+
+        // Инициализируем Intersection Observer для отслеживания видимых SVG
+        this.setupIntersectionObserver();
 
         // Обработка SVG после рендеринга LaTeX
         this.registerMarkdownPostProcessor((element, context) => {
@@ -17,6 +21,34 @@ export default class SVGColorReplacerPlugin extends Plugin {
                 this.processAllSVG();
             })
         );
+
+        // Обработка SVG при прокрутке (debounced)
+        this.registerDomEvent(document, 'scroll', this.debounce(() => {
+            this.processVisibleSVG();
+        }, 150), true);
+    }
+
+    setupIntersectionObserver() {
+        // Создаем observer для отслеживания появления SVG в viewport
+        this.intersectionObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const element = entry.target;
+                    
+                    if (element.tagName.toLowerCase() === 'svg' && !element.hasAttribute(this.PROCESSED_MARKER)) {
+                        this.replaceSVGColors(element as SVGElement);
+                        (element as SVGElement).setAttribute(this.PROCESSED_MARKER, 'true');
+                    } else if (element.tagName.toLowerCase() === 'img' && !element.hasAttribute(this.PROCESSED_MARKER)) {
+                        this.replaceImageSVGColors(element as HTMLImageElement);
+                        element.setAttribute(this.PROCESSED_MARKER, 'true');
+                    }
+                }
+            });
+        }, {
+            root: null, // viewport
+            rootMargin: '50px', // Обрабатываем за 50px до появления
+            threshold: 0.01 // Триггер при 1% видимости
+        });
     }
 
     processSVGElements(container: HTMLElement) {
@@ -26,8 +58,14 @@ export default class SVGColorReplacerPlugin extends Plugin {
         svgElements.forEach((svg) => {
             // Проверяем, не был ли элемент уже обработан
             if (!svg.hasAttribute(this.PROCESSED_MARKER)) {
-                this.replaceSVGColors(svg);
-                svg.setAttribute(this.PROCESSED_MARKER, 'true');
+                // Если observer активен, добавляем в наблюдение
+                if (this.intersectionObserver) {
+                    this.intersectionObserver.observe(svg);
+                } else {
+                    // Иначе обрабатываем сразу
+                    this.replaceSVGColors(svg);
+                    svg.setAttribute(this.PROCESSED_MARKER, 'true');
+                }
             }
         });
 
@@ -36,10 +74,30 @@ export default class SVGColorReplacerPlugin extends Plugin {
         imgElements.forEach((img) => {
             // Проверяем, не был ли элемент уже обработан
             if (!img.hasAttribute(this.PROCESSED_MARKER)) {
-                this.replaceImageSVGColors(img as HTMLImageElement);
-                img.setAttribute(this.PROCESSED_MARKER, 'true');
+                if (this.intersectionObserver) {
+                    this.intersectionObserver.observe(img);
+                } else {
+                    this.replaceImageSVGColors(img as HTMLImageElement);
+                    img.setAttribute(this.PROCESSED_MARKER, 'true');
+                }
             }
         });
+    }
+
+    processVisibleSVG() {
+        // Обрабатываем SVG, которые еще не обработаны и находятся в viewport
+        const contentElements = document.querySelectorAll('.markdown-preview-view');
+        contentElements.forEach((container) => {
+            this.processSVGElements(container as HTMLElement);
+        });
+    }
+
+    debounce(func: Function, wait: number) {
+        let timeout: NodeJS.Timeout;
+        return (...args: any[]) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
     }
 
     replaceSVGColors(svg: SVGElement) {
@@ -264,5 +322,11 @@ export default class SVGColorReplacerPlugin extends Plugin {
 
     onunload() {
         console.log('Unloading SVG Color Replacer Plugin');
+        
+        // Очищаем observer при выгрузке плагина
+        if (this.intersectionObserver) {
+            this.intersectionObserver.disconnect();
+            this.intersectionObserver = null;
+        }
     }
 }
