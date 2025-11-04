@@ -1,12 +1,10 @@
-import { Plugin, MarkdownPostProcessorContext } from 'obsidian';
+import { Plugin } from 'obsidian';
 
 export default class SVGColorReplacerPlugin extends Plugin {
     private readonly PROCESSED_MARKER = 'svg-color-replaced';
     private intersectionObserver: IntersectionObserver | null = null;
 
-    async onload() {
-        console.log('Loading SVG Color Replacer Plugin');
-
+    onload() {
         // Инициализируем Intersection Observer для отслеживания видимых SVG
         this.setupIntersectionObserver();
 
@@ -92,9 +90,9 @@ export default class SVGColorReplacerPlugin extends Plugin {
         });
     }
 
-    debounce(func: Function, wait: number) {
+    debounce<T extends unknown[]>(func: (...args: T) => void, wait: number): (...args: T) => void {
         let timeout: NodeJS.Timeout;
-        return (...args: any[]) => {
+        return (...args: T) => {
             clearTimeout(timeout);
             timeout = setTimeout(() => func.apply(this, args), wait);
         };
@@ -320,9 +318,7 @@ export default class SVGColorReplacerPlugin extends Plugin {
         });
     }
 
-    onunload() {
-        console.log('Unloading SVG Color Replacer Plugin');
-        
+    onunload() {        
         // Очищаем observer при выгрузке плагина
         if (this.intersectionObserver) {
             this.intersectionObserver.disconnect();
